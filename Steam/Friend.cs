@@ -7,7 +7,12 @@ namespace SendMessage
 {
     class Friend
     {
-        public ulong SteamID { get; set; }
+		public static SteamClient SteamClient { get; private set; }
+		
+		public static SteamFriends SteamFriends { get; private set; }
+		public static SteamUser SteamUser { get; private set; }
+
+		public ulong SteamID { get; set; }
 
         public Friend()
         {
@@ -33,7 +38,7 @@ namespace SendMessage
                 return "";
             try
             {
-                return Steam3.SteamFriends.GetFriendGamePlayedName( this.SteamID );
+                return SteamFriends.GetFriendGamePlayedName( this.SteamID );
             }
             catch
             {
@@ -46,7 +51,7 @@ namespace SendMessage
         {
             try
             {
-                string gameName = Steam3.SteamFriends.GetFriendGamePlayedName( this.SteamID );
+                string gameName = SteamFriends.GetFriendGamePlayedName( this.SteamID );
                 return !string.IsNullOrEmpty( gameName );
             }
             catch
@@ -57,26 +62,26 @@ namespace SendMessage
 
         public bool IsBlocked()
         {
-            EFriendRelationship relationship = Steam3.SteamFriends.GetFriendRelationship( this.SteamID );
+            EFriendRelationship relationship = SteamFriends.GetFriendRelationship( this.SteamID );
             return ( relationship == EFriendRelationship.Ignored || relationship == EFriendRelationship.IgnoredFriend );
         }
 
         public bool IsRequestingFriendship()
         {
-            EFriendRelationship relationship = Steam3.SteamFriends.GetFriendRelationship( this.SteamID );
+            EFriendRelationship relationship = SteamFriends.GetFriendRelationship( this.SteamID );
             return ( relationship == EFriendRelationship.RequestRecipient );
         }
 
         public bool IsAcceptingFriendship()
         {
-            return ( Steam3.SteamFriends.GetFriendRelationship( this.SteamID ) == EFriendRelationship.RequestInitiator );
+            return ( SteamFriends.GetFriendRelationship( this.SteamID ) == EFriendRelationship.RequestInitiator );
         }
 
         public bool IsOnline()
         {
             try
             {
-                return Steam3.SteamFriends.GetFriendPersonaState( this.SteamID ) != EPersonaState.Offline;
+                return SteamFriends.GetFriendPersonaState( this.SteamID ) != EPersonaState.Offline;
             }
             catch { return false; }
         }
@@ -85,7 +90,7 @@ namespace SendMessage
         {
             try
             {
-                return Steam3.SteamFriends.GetFriendPersonaName( this.SteamID );
+                return SteamFriends.GetFriendPersonaName( this.SteamID );
             }
             catch
             {
@@ -109,7 +114,7 @@ namespace SendMessage
                     return str;
                 }
 
-                EPersonaState state = Steam3.SteamFriends.GetFriendPersonaState( this.SteamID );
+                EPersonaState state = SteamFriends.GetFriendPersonaState( this.SteamID );
 
                 switch ( state )
                 {
@@ -156,7 +161,7 @@ namespace SendMessage
         {
             try
             {
-                return Steam3.SteamFriends.GetFriendPersonaState( this.SteamID );
+                return SteamFriends.GetFriendPersonaState( this.SteamID );
             }
             catch
             {

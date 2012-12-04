@@ -1,4 +1,0 @@
-/home/deploy/steamre/Samples/5.Friends/bin/Debug/Sample5_Friends.exe.mdb
-/home/deploy/steamre/Samples/5.Friends/bin/Debug/Sample5_Friends.exe
-/home/deploy/steamre/Samples/5.Friends/obj/x86/Debug/Sample5_Friends.exe
-/home/deploy/steamre/Samples/5.Friends/obj/x86/Debug/Sample5_Friends.exe.mdb

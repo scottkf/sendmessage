@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using Nancy;
+using Nancy.Hosting.Self;
 using SteamKit2;
 
 //
@@ -16,13 +17,9 @@ namespace SendMessage
 {
     class Program
     {
-        static SteamClient steamClient;
         static CallbackManager manager;
 
-        static SteamUser steamUser;
-        static SteamFriends steamFriends;
-
-        static bool isRunning;
+		static bool isRunning;
 
         static string user, pass;
 
@@ -31,27 +28,27 @@ namespace SendMessage
         {
             if ( args.Length < 2 )
             {
-                Console.WriteLine( "Sample5: No username and password specified!" );
+                Console.WriteLine( "SendMessage: No username and password specified!" );
                 return;
             }
 
-            // save our logon details
+			// exit gracefully if possible
+			Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e) {
+				e.Cancel = true;
+				isRunning = false;
+			};
+
+			var url = "http://localhost:3131";
+			var host = new NancyHost(new Uri(url));
+			host.Start();
+			Console.WriteLine ("Server now running on: " + url);
+
+			// save our logon details
             user = args[ 0 ];
             pass = args[ 1 ];
 
-            // create our steamclient instance
-            steamClient = new SteamClient( System.Net.Sockets.ProtocolType.Tcp );
-            // create the callback manager which will route callbacks to function calls
-            manager = new CallbackManager( steamClient );
+            manager = new CallbackManager( Steam3.SteamClient );
 
-            // get the steamuser handler, which is used for logging on after successfully connecting
-            steamUser = steamClient.GetHandler<SteamUser>();
-            // get the steam friends handler, which is used for interacting with friends on the network after logging on
-            steamFriends = steamClient.GetHandler<SteamFriends>();
-
-            // register a few callbacks we're interested in
-            // these are registered upon creation to a callback manager, which will then route the callbacks
-            // to the functions specified
             new Callback<SteamClient.ConnectedCallback>( OnConnected, manager );
             new Callback<SteamClient.DisconnectedCallback>( OnDisconnected, manager );
 
@@ -63,13 +60,14 @@ namespace SendMessage
             new Callback<SteamFriends.FriendsListCallback>( OnFriendsList, manager );
             new Callback<SteamFriends.PersonaStateCallback>( OnPersonaState, manager );
             new Callback<SteamFriends.FriendAddedCallback>( OnFriendAdded, manager );
+			new Callback<SteamFriends.FriendMsgCallback>( OnMsgReceived, manager );
 
             isRunning = true;
 
             Console.WriteLine( "Connecting to Steam..." );
 
             // initiate the connection
-            steamClient.Connect( false );
+            Steam3.SteamClient.Connect( false );
 
             // create our callback handling loop
             while ( isRunning )
@@ -77,7 +75,23 @@ namespace SendMessage
                 // in order for the callbacks to get routed, they need to be handled by the manager
                 manager.RunWaitCallbacks( TimeSpan.FromSeconds( 1 ) );
             }
+
+			Console.WriteLine( "Disconnecting from Steam..." );
+
+			Steam3.SteamUser.LogOff();
+			Steam3.SteamClient.Disconnect();
+			host.Stop();
+			host.Stop();
+
         }
+
+		static void OnMsgReceived (SteamFriends.FriendMsgCallback callback)
+		{
+			Console.WriteLine ( "Message from {0}: {1}",
+			                   Steam3.SteamFriends.GetFriendPersonaName (callback.Sender),
+			                   callback.Message
+			                   );
+		}
 
         static void OnConnected( SteamClient.ConnectedCallback callback )
         {
@@ -91,7 +105,7 @@ namespace SendMessage
 
             Console.WriteLine( "Connected to Steam! Logging in '{0}'...", user );
 
-            steamUser.LogOn( new SteamUser.LogOnDetails
+            Steam3.SteamUser.LogOn( new SteamUser.LogOnDetails
             {
                 Username = user,
                 Password = pass,
@@ -128,21 +142,21 @@ namespace SendMessage
             // this callback is posted shortly after a successful logon
 
             // at this point, we can go online on friends, so lets do that
-            steamFriends.SetPersonaState( EPersonaState.Online );
+            Steam3.SteamFriends.SetPersonaState( EPersonaState.Online );
         }
 
         static void OnFriendsList( SteamFriends.FriendsListCallback callback )
         {
             // at this point, the client has received it's friends list
 
-            int friendCount = steamFriends.GetFriendCount();
+            int friendCount = Steam3.SteamFriends.GetFriendCount();
 
             Console.WriteLine( "We have {0} friends", friendCount );
 
             for ( int x = 0 ; x < friendCount ; x++ )
             {
                 // steamids identify objects that exist on the steam network, such as friends, as an example
-                SteamID steamIdFriend = steamFriends.GetFriendByIndex( x );
+                SteamID steamIdFriend = Steam3.SteamFriends.GetFriendByIndex( x );
 
                 // we'll just display the STEAM_ rendered version
                 Console.WriteLine( "Friend: {0}", steamIdFriend.Render() );
@@ -155,7 +169,7 @@ namespace SendMessage
                 if (friend.Relationship == EFriendRelationship.PendingInvitee)
                 {
                     // this user has added us, let's add him back
-                    steamFriends.AddFriend(friend.SteamID);
+                    Steam3.SteamFriends.AddFriend(friend.SteamID);
                 }
             }
         }
